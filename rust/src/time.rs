@@ -11,7 +11,7 @@ use std::{borrow::Cow, string::ToString};
 #[allow(unused_imports)]
 use wasmbus_rpc::{
     deserialize, serialize, Context, Message, MessageDispatch, RpcError, RpcResult, SendOpts,
-    Transport,
+    Timestamp, Transport,
 };
 
 pub const SMITHY_VERSION: &str = "1.0";
@@ -90,16 +90,6 @@ impl<T: Transport> TimeSender<T> {
         Self { transport }
     }
 }
-#[cfg(not(target_arch = "wasm32"))]
-impl<'send> TimeSender<wasmbus_rpc::provider::ProviderTransport<'send>> {
-    /// Constructs a Sender using an actor's LinkDefinition,
-    /// Uses the provider's HostBridge for rpc
-    pub fn for_actor(ld: &'send wasmbus_rpc::core::LinkDefinition) -> Self {
-        Self {
-            transport: wasmbus_rpc::provider::ProviderTransport::new(ld, None),
-        }
-    }
-}
 
 #[cfg(target_arch = "wasm32")]
 impl TimeSender<wasmbus_rpc::actor::prelude::WasmHost> {
@@ -122,14 +112,6 @@ impl TimeSender<wasmbus_rpc::actor::prelude::WasmHost> {
             link_name,
         )?;
         Ok(Self { transport })
-    }
-
-    /// Constructs a client for actor-to-actor messaging
-    /// using the recipient actor's public key
-    pub fn to_actor(actor_id: &str) -> Self {
-        let transport =
-            wasmbus_rpc::actor::prelude::WasmHost::to_actor(actor_id.to_string()).unwrap();
-        Self { transport }
     }
 }
 #[async_trait]
