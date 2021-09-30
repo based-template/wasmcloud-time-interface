@@ -9,7 +9,7 @@ namespace org.auxiliary.interfaces.time
 
 use org.wasmcloud.model#wasmbus
 use org.wasmcloud.model#U32
-use org.wasmcloud.model#U64
+use org.wasmcloud.model#I64
 
 /// The Time service has two methods, GetTimestamp and FormatTimestamp, which
 /// return the current time as a U64 Unix epoch timestamp and a formatted string of a timestamp, respectively
@@ -23,7 +23,7 @@ service Time {
 
 /// Provides current time according to Unix epoch format with millisecond resolution
 operation GetTimestamp {
-  output: U64
+  output: TimeStamp
 }
 
 /// takes structure containing U64 Unix epoch timestamp + RFC string,
@@ -33,10 +33,18 @@ operation FormatTimestamp {
     output: String
 }
 
+structure TimeStamp {
+    @required
+    sec: I64,
+
+    @required
+    nsec: U32,
+}
+
 /// wrapper for timestamp + string representing RFC to format time-string
 structure FormatTimeRequest {
     @required
-    timestamp: U64,
+    timestamp: TimeStamp,
 
     @required
     rfc: String,
