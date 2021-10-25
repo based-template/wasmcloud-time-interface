@@ -1,14 +1,10 @@
-// This file is generated automatically using wasmcloud-weld and smithy model definitions
+// This file is generated automatically using wasmcloud/weld-codegen and smithy model definitions
 //
 
-#![allow(clippy::ptr_arg)]
-#[allow(unused_imports)]
+#![allow(unused_imports, clippy::ptr_arg, clippy::needless_lifetimes)]
 use async_trait::async_trait;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
-#[allow(unused_imports)]
-use std::{borrow::Cow, string::ToString};
-#[allow(unused_imports)]
+use std::{borrow::Cow, io::Write, string::ToString};
 use wasmbus_rpc::{
     deserialize, serialize, Context, Message, MessageDispatch, RpcError, RpcResult, SendOpts,
     Timestamp, Transport,
@@ -57,20 +53,20 @@ pub trait TimeReceiver: MessageDispatch + Time {
         match message.method {
             "GetTimestamp" => {
                 let resp = Time::get_timestamp(self, ctx).await?;
-                let buf = Cow::Owned(serialize(&resp)?);
+                let buf = serialize(&resp)?;
                 Ok(Message {
                     method: "Time.GetTimestamp",
-                    arg: buf,
+                    arg: Cow::Owned(buf),
                 })
             }
             "FormatTimestamp" => {
                 let value: FormatTimeRequest = deserialize(message.arg.as_ref())
                     .map_err(|e| RpcError::Deser(format!("message '{}': {}", message.method, e)))?;
                 let resp = Time::format_timestamp(self, ctx, &value).await?;
-                let buf = Cow::Owned(serialize(&resp)?);
+                let buf = serialize(&resp)?;
                 Ok(Message {
                     method: "Time.FormatTimestamp",
-                    arg: buf,
+                    arg: Cow::Owned(buf),
                 })
             }
             _ => Err(RpcError::MethodNotHandled(format!(
@@ -94,6 +90,10 @@ impl<T: Transport> TimeSender<T> {
     /// Constructs a TimeSender with the specified transport
     pub fn via(transport: T) -> Self {
         Self { transport }
+    }
+
+    pub fn set_timeout(&self, interval: std::time::Duration) {
+        self.transport.set_timeout(interval);
     }
 }
 
@@ -125,14 +125,14 @@ impl<T: Transport + std::marker::Sync + std::marker::Send> Time for TimeSender<T
     #[allow(unused)]
     /// Provides current time according to Unix epoch format with millisecond resolution
     async fn get_timestamp(&self, ctx: &Context) -> RpcResult<TimeStamp> {
-        let arg = *b"";
+        let buf = *b"";
         let resp = self
             .transport
             .send(
                 ctx,
                 Message {
                     method: "Time.GetTimestamp",
-                    arg: Cow::Borrowed(&arg),
+                    arg: Cow::Borrowed(&buf),
                 },
                 None,
             )
@@ -145,14 +145,14 @@ impl<T: Transport + std::marker::Sync + std::marker::Send> Time for TimeSender<T
     /// takes structure containing U64 Unix epoch timestamp + RFC string,
     /// returns formatted string representing timestamp according to RFC (eg: RFC2822, RFC3339)
     async fn format_timestamp(&self, ctx: &Context, arg: &FormatTimeRequest) -> RpcResult<String> {
-        let arg = serialize(arg)?;
+        let buf = serialize(arg)?;
         let resp = self
             .transport
             .send(
                 ctx,
                 Message {
                     method: "Time.FormatTimestamp",
-                    arg: Cow::Borrowed(&arg),
+                    arg: Cow::Borrowed(&buf),
                 },
                 None,
             )
